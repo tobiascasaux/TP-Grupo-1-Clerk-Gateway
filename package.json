@@ -1,0 +1,23 @@
+{
+  "name": "freevago-gateway",
+  "version": "1.0.0",
+  "description": "API Gateway de FreeVago - Team 1",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "uuid": "^9.0.1",
+    "@clerk/backend": "^1.5.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  }
+}
