@@ -1,3 +1,7 @@
+// ============================================================
+// scrapResults.js — GET /api/scrap-results/:id → MS2
+// Consulta un resultado de scraping ya guardado por su id2.
+// ============================================================
 import { Router } from 'express';
 import { requireAuth } from '../middlewares/auth.js';
 import { createServiceClient } from '../utils/httpClient.js';
@@ -6,9 +10,8 @@ import { successResponse, errorResponse, ERRORS } from '../utils/response.js';
 import { config } from '../config.js';
 
 const router = Router();
-const ms2Client = createServiceClient(config.services.ms2);
+const ms2Client = createServiceClient(config.microservices.ms2, config.timeouts.ms2);
 
-// GET /api/scrap-results/:id -> MS2 Scraping (G3)
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const response = await ms2Client.get(`/scrap-results/${req.params.id}`, {
@@ -16,6 +19,8 @@ router.get('/:id', requireAuth, async (req, res) => {
     });
     return successResponse(res, response.data);
   } catch (err) {
+    console.error(`[${req.requestId}] Error GET /scrap-results/:id → MS2:`, err.message);
+
     if (err.response?.status === 404) {
       return errorResponse(res, req, {
         ...ERRORS.NOT_FOUND,
@@ -25,7 +30,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     }
     return errorResponse(res, req, {
       ...ERRORS.SERVICE_UNAVAILABLE,
-      message: 'El servicio de Scraping (MS2) no respondió',
+      message: 'No se pudo conectar con MS2 (Scraping)',
       service: 'ms2-scraping',
     });
   }

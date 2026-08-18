@@ -1,5 +1,22 @@
+# Dependencias — se regeneran con npm install, no van al repo
 node_modules/
+
+# Variables de entorno reales — NUNCA al repo
 .env
+.env.local
+.env.*.local
+
+# Logs
 *.log
+npm-debug.log*
+
+# Sistema operativo
 .DS_Store
+Thumbs.db
+
+# Cobertura de tests
 coverage/
+
+# Editor
+.vscode/
+.idea/

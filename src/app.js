@@ -1,5 +1,9 @@
+// ============================================================
+// app.js — Configuración de Express
+// ============================================================
 import express from 'express';
 import { attachRequestId } from './middlewares/requestId.js';
+import { initClerk } from './middlewares/auth.js';
 import healthRoutes from './routes/health.js';
 import surveyRoutes from './routes/survey.js';
 import scrapeRoutes from './routes/scrape.js';
@@ -9,30 +13,34 @@ import { errorResponse, ERRORS } from './utils/response.js';
 
 export const app = express();
 
+// ── Middlewares globales ──────────────────────────────────────
 app.use(express.json());
-app.use(attachRequestId); // primero de todos, para que hasta un 401 tenga requestId
+app.use(express.urlencoded({ extended: true }));
+app.use(attachRequestId);
 
-// Prefijo /api sin versión, según el acuerdo conjunto de los 3 equipos
-app.use('/api/health', healthRoutes);
-app.use('/api/survey', surveyRoutes);       // POST /api/survey            -> MS1
-app.use('/api/travel-plans', surveyRoutes); // GET  /api/travel-plans/:id  -> MS1
-app.use('/api/scrape', scrapeRoutes);           // POST /api/scrape             -> MS2
-app.use('/api/scrap-results', scrapResultsRoutes); // GET /api/scrap-results/:id -> MS2
-app.use('/api/travels', travelsRoutes);     // GET  /api/travels/:id       -> MS3
-// /api/auth/* lo maneja directamente Clerk del lado del front en muchos setups;
-// si necesitan proxyear algo puntual de auth, se agrega acá.
+// ── Rutas ─────────────────────────────────────────────────────
+app.use('/api/health',        healthRoutes);                   // pública
+app.use('/api/survey',        initClerk, surveyRoutes);
+app.use('/api/travel-plans',  initClerk, surveyRoutes);
+app.use('/api/scrape',        initClerk, scrapeRoutes);
+app.use('/api/scrap-results', initClerk, scrapResultsRoutes);
+app.use('/api/travels',       initClerk, travelsRoutes);
 
+// ── 404 ───────────────────────────────────────────────────────
 app.use((req, res) => {
   return errorResponse(res, req, {
     ...ERRORS.NOT_FOUND,
-    message: 'Ruta no encontrada',
+    message: `Ruta no encontrada: ${req.method} ${req.path}`,
   });
 });
 
+// ── 500 ───────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error(err);
+  console.error(`[${req.requestId}] Error no manejado:`, err);
   return errorResponse(res, req, {
     ...ERRORS.INTERNAL_ERROR,
-    message: 'Error interno del servidor',
+    message: process.env.NODE_ENV === 'production'
+      ? 'Error interno del servidor'
+      : err.message,
   });
 });
