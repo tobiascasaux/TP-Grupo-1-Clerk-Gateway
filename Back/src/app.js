@@ -10,10 +10,17 @@ import scrapeRoutes from './routes/scrape.js';
 import scrapResultsRoutes from './routes/scrapResults.js';
 import travelsRoutes from './routes/travels.js';
 import { errorResponse, ERRORS } from './utils/response.js';
+import cors from 'cors';
 
 export const app = express();
 
 // ── Middlewares globales ──────────────────────────────────────
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(attachRequestId);
