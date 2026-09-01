@@ -32,8 +32,8 @@ export const config = {
   // Timeouts por microservicio (en ms)
   // MS2 y MS3 son más lentos porque dependen de scraping externo y Gemini
   timeouts: {
-    ms1: parseInt(process.env.MS1_TIMEOUT) || 10000,
-    ms2: parseInt(process.env.MS2_TIMEOUT) || 30000,
-    ms3: parseInt(process.env.MS3_TIMEOUT) || 45000,
+    ms1: parseInt(process.env.MS1_TIMEOUT, 10) || 10000,
+    ms2: parseInt(process.env.MS2_TIMEOUT, 10) || 30000,
+    ms3: parseInt(process.env.MS3_TIMEOUT, 10) || 45000,
   },
 };

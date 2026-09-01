@@ -1,10 +1,13 @@
 // ============================================================
 // app.js — Configuración de Express
-// Base: repo (18/08/2026)
-// Cambios respecto a la base:
-//   - scrape.js y scrapResults.js reemplazados por ms2.js
-//   - Rutas nuevas de MS2: /sugerencias, /vuelos, /hoteles,
-//     /actividades, /viaje, /scraping-results
+// Última actualización: 27/08/2026
+//
+// ⚠️ OPCIÓN B ACTIVA — limitación conocida documentada:
+// Las rutas de MS1 (/api/survey, /api/travel-plans) no requieren
+// token de Clerk porque MS1 tiene su propio sistema de auth.
+// El x-user-id que manda el gateway no aplica aguas abajo de MS1.
+// Pendiente: cuando MS1 adopte Clerk (Opción A), restaurar initClerk
+// en esas rutas y agregar requireAuth en survey.js.
 // ============================================================
 import express from 'express';
 import cors from 'cors';
@@ -14,56 +17,41 @@ import healthRoutes from './routes/health.js';
 import surveyRoutes from './routes/survey.js';
 import ms2Routes from './routes/ms2.js';
 import travelsRoutes from './routes/travels.js';
-import { errorResponse, ERRORS } from './utils/response.js';
-// import arriba con los demás
 import meRoutes from './routes/me.js';
+import { errorResponse, ERRORS } from './utils/response.js';
 
 export const app = express();
 
 // ── CORS ──────────────────────────────────────────────────────
-// Permite que el front (Vite en localhost:5173) llame al gateway.
-// En producción, FRONTEND_URL debe ser la URL real del deploy del front.
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true, // necesario para que Clerk envíe cookies de sesión
+  credentials: true,
 }));
 
 // ── Middlewares globales ──────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(attachRequestId); // genera x-request-id — siempre primero
+app.use(attachRequestId);
 
 // ── Rutas ─────────────────────────────────────────────────────
-// initClerk se aplica POR RUTA, no globalmente — así /api/health
-// funciona sin claves de Clerk en tests y healthchecks del deploy.
 
 // Pública — sin auth
 app.use('/api/health', healthRoutes);
 
-// MS1 — Encuesta / Solicitudes
-app.use('/api/survey',       initClerk, surveyRoutes); // POST → crea encuesta
-app.use('/api/travel-plans', initClerk, surveyRoutes); // GET  → lee encuesta por id
-// ⚠️ BLOQUEANTE PENDIENTE: MS3 también expone POST /api/travel-plans.
-// Con este ruteo ese endpoint de MS3 es inalcanzable desde el gateway.
-// No cambiar hasta que se resuelva la colisión del nombre "travelPlan"
-// con Nico (ver Acuerdos Abiertos en el Notion compartido).
-
-// MS2 — Scraping (todas las rutas en ms2.js)
-// Cubre:
-//   POST /api/scrape               → inicia scraping con solicitudId
-//   GET  /api/scraping-results/:id → lee resultado de Mongo
-//   GET  /api/sugerencias          → autocompletado de destino
-//   GET  /api/vuelos               → scrapea vuelos (Kayak)
-//   GET  /api/hoteles              → scrapea hoteles (Booking)
-//   GET  /api/actividades          → scrapea actividades (Civitatis + Turismocity)
-//   POST /api/viaje                → orquestador de prueba (sin persistencia)
-app.use('/api', initClerk, ms2Routes);
-  // en las rutas, después de health
+// Perfil de usuario — requiere Clerk
 app.use('/api/me', initClerk, meRoutes);
 
+// MS1 — sin Clerk por ahora (Opción B)
+// MS1 tiene su propio sistema de auth, no usa el token de Clerk todavía.
+// Cuando MS1 adopte Clerk, cambiar a: initClerk, surveyRoutes
+app.use('/api/survey',       surveyRoutes);
+app.use('/api/travel-plans', surveyRoutes);
 
-// MS3 — Armado / Planes
-app.use('/api/travels', initClerk, travelsRoutes); // POST/GET → planes finales con Gemini
+// MS2 — requiere Clerk
+app.use('/api', initClerk, ms2Routes);
+
+// MS3 — requiere Clerk
+app.use('/api/travels', initClerk, travelsRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────
 app.use((req, res) => {
